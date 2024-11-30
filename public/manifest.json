@@ -1,0 +1,24 @@
+{
+    "manifest_version": 3,
+    "name": "ghostTabs",
+    "version": "1.0.0",
+    "permissions": ["tabs", "storage", "activeTab", "scripting"],
+    "background": {
+      "service_worker": "background.js",
+      "type": "module"
+    },
+    "icons": {
+      "16": "ghostTabsIcon.png",
+      "48": "ghostTabsIcon.png",
+      "128": "ghostTabsIcon.png"
+    },
+    "action": {
+      "default_icon": "ghostTabsIcon.png",
+      "default_popup": "index.html"
+    },
+    "host_permissions": [
+        "https://*/*",
+        "http://*/*",
+        "<all_urls>"
+    ]
+}
