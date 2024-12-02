@@ -144,6 +144,7 @@ async function clearCaptures(sendResponse: (response: any) => void) {
     // Clear all captures
     captures = [];
     await chrome.storage.local.set({ captures: [] });
+    currentCaptureIndex = null;
     // Reset badge
     chrome.action.setBadgeText({ text: '0' });
 
@@ -160,122 +161,82 @@ async function clearCaptures(sendResponse: (response: any) => void) {
 // Event Listeners
 // ================================
 
-// Handle tab activation (switching)
-// chrome.tabs.onActivated.addListener(async (activeInfo) => {
-//   const prevTabId = currentTabId;
-//   // Update currentTabId to the new active tab
-//   currentTabId = activeInfo.tabId;
-//   // capture the previous tab if it's different from the current active tab
-//   if (prevTabId && prevTabId !== activeInfo.tabId) {
-//     try {
-//       const prevTab = await chrome.tabs.get(prevTabId);
-//       if (prevTab) {
-//         await handleCapture(prevTab);
-//       }
-//     } catch (error) {
-//       console.error('Error capturing tab:', error);
-//     }
-//   }
-// });
-
 // Handle user-initiated capture
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('Command:', command);
-  if (command === 'capture_tab') {
-    // Get the active tab
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab) {
-      handleCapture(tab);
-      currentCaptureIndex = 0;
-    }
-  } else if (command === 'next_capture') {
-    // find the target tab (the next newest one) in storage
-    // should we keep track of the index of the current tab?
-    if (captures.length === 0) {
-      console.log('No captures available');
-      return;
-    }
-
-    if (currentCaptureIndex === null) {
-      currentCaptureIndex = 0;
-    } else {
-      currentCaptureIndex = (currentCaptureIndex + 1) % captures.length;
-    }
-
-    const currCapture = captures[currentCaptureIndex];
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id && currCapture) {
-      // send message to content script to update current capture
-      chrome.tabs.sendMessage(tab.id, { 
-        type: 'UPDATE_CURRENT_CAPTURE',
-        screenshot: currCapture.screenshot,
-        idx: currentCaptureIndex,
-      });
-      // show popup while cycling through captures
-      chrome.action.openPopup();
-    }
-  } else if (command === 'previous_capture') {
-    // find the target tab (the previous one) in storage
-    if (captures.length === 0) {
-      console.log('No captures available');
-      return;
-    }
-
-    if (currentCaptureIndex === null) {
-      currentCaptureIndex = 0;
-    } else {
-      currentCaptureIndex = (currentCaptureIndex - 1 + captures.length) % captures.length;
-    }
-
-    const currCapture = captures[currentCaptureIndex];
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id && currCapture) {
-      // send message to content script to update current capture
-      chrome.tabs.sendMessage(tab.id, { 
-        type: 'UPDATE_CURRENT_CAPTURE',
-        screenshot: currCapture.screenshot,
-        idx: currentCaptureIndex,
-      });
-      // show popup while cycling through captures
-      chrome.action.openPopup();
-    }
-  } else if (command === '_execute_action') {
-    // toggle the overlay on the current tab
-    // send a message to the content script to toggle the overlay
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tab?.id && captures.length > 0 && currentCaptureIndex !== null) {
-      const currCapture = captures[currentCaptureIndex];
-      if (currCapture) {
-        // send message to content script to toggle overlay
-        chrome.tabs.sendMessage(tab.id, { 
-          type: 'TOGGLE_OVERLAY',
-          screenshot: currCapture.screenshot,
-        });
-      } else {
-        console.warn('No capture found at index:', currentCaptureIndex);
+  
+  switch (command) {
+    case 'capture_tab': {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab) {
+        await handleCapture(tab);
+        currentCaptureIndex = 0;
       }
+      break;
     }
-  } else {
-    console.warn('Unknown command:', command);
+
+    case 'next_capture':
+    case 'previous_capture': {
+      if (captures.length === 0) {
+        console.log('No captures available');
+        return;
+      }
+
+      if (currentCaptureIndex === null) {
+        currentCaptureIndex = 0;
+      } else {
+        const delta = command === 'next_capture' ? 1 : -1;
+        currentCaptureIndex = (currentCaptureIndex + delta + captures.length) % captures.length;
+      }
+
+      const currCapture = captures[currentCaptureIndex];
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id && currCapture) {
+        chrome.tabs.sendMessage(tab.id, { 
+          type: 'UPDATE_CURRENT_CAPTURE',
+          screenshot: currCapture.screenshot,
+          idx: currentCaptureIndex,
+        });
+      }
+      break;
+    }
+
+    case '_execute_action': {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id && captures.length > 0 && currentCaptureIndex !== null) {
+        const currCapture = captures[currentCaptureIndex];
+        if (currCapture) {
+          chrome.tabs.sendMessage(tab.id, { 
+            type: 'TOGGLE_OVERLAY',
+            screenshot: currCapture.screenshot,
+          });
+        }
+      }
+      break;
+    }
+  }
+});
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Message received:', message, sender);
+  switch (message.type) {
+    case 'GET_LATEST_CAPTURE':
+      getLatestCapture(sendResponse);
+      return true;
+
+    case 'CLEAR_CAPTURES':
+      clearCaptures(sendResponse);
+      return true;
+
+    case 'GET_ALL_CAPTURES':
+      sendResponse({ captures, currentCaptureIndex });
+      return true;
+
+    default:
+      console.warn('Unknown message type:', message.type);
   }
 });
 
 // Initialize extension on installation or startup
 chrome.runtime.onInstalled.addListener(initialize);
 chrome.runtime.onStartup.addListener(initialize);
-
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received:', message, sender);
-  if (message.type === 'GET_LATEST_CAPTURE') {
-    getLatestCapture(sendResponse);
-    return true; 
-  } else if (message.type === 'CLEAR_CAPTURES') {
-    clearCaptures(sendResponse);
-    return true;
-  } else if (message.type === 'GET_ALL_CAPTURES') {
-    sendResponse({ captures, currentCaptureIndex });
-    return true;
-  } else {
-    console.warn('Unknown message type:', message.type);
-  }
-});
