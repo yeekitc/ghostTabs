@@ -13,7 +13,6 @@ type TabCapture = {
 
 let captures: TabCapture[] = [];
 const MAX_CAPTURES = 20;
-// let currentTabId: number | null = null;
 let currentCaptureIndex: number | null = null;
 
 // ================================
@@ -24,7 +23,7 @@ let currentCaptureIndex: number | null = null;
 // INPUT: the tab to capture
 // OUTPUT: the capture object or null if capture failed
 async function captureTab(tab: chrome.tabs.Tab): Promise<TabCapture | null> {
-  // Check if tab is capturable (exists & is not a special tab)
+  // check if tab is capturable (exists & is not a special tab)
   if (!tab.id || !tab.url || tab.url.startsWith('chrome://')) {
     console.warn('Tab is not capturable:', tab.url);
     return null;
@@ -34,8 +33,8 @@ async function captureTab(tab: chrome.tabs.Tab): Promise<TabCapture | null> {
     // Attempt to capture the tab
     const screenshot = await chrome.tabs.captureVisibleTab(tab.windowId, { format: 'png' });
     return {
-      id: Date.now().toString(), // Unique ID based on timestamp
-      url: tab.url, // URL of the tab
+      id: Date.now().toString(),  // Unique ID based on timestamp
+      url: tab.url,               // URL of the tab
       title: tab.title || 'Untitled', // Title of the tab (default to 'Untitled')
       screenshot, // Base64-encoded PNG screenshot
       timestamp: Date.now(), // Timestamp of the capture
@@ -83,7 +82,7 @@ async function handleCapture(tab: chrome.tabs.Tab) {
     }
   } catch (error) {
     console.error('Error in handleCapture:', error);
-    // If we get the "tabs cannot be edited" error, retry once after a longer delay
+    // if we get the "tabs cannot be edited" error, retry once after a longer delay
     if (error) {
       console.log('Retrying capture in 500ms...');
       try {
@@ -99,14 +98,16 @@ async function handleCapture(tab: chrome.tabs.Tab) {
   }
 }
 
-// Initialize extension upon installation or reload
+// initialize extension upon installation or reload
+// INPUT: none
+// OUTPUT: none
 async function initialize() {
   try {
-    // Load existing captures from storage
+    // load existing captures from chrome's storage
     const data = await chrome.storage.local.get('captures');
     captures = Array.isArray(data.captures) ? data.captures : [];
 
-    // Set badge count
+    // Set badge count with the number of captures
     chrome.action.setBadgeText({ text: captures.length.toString() });
     chrome.action.setBadgeBackgroundColor({ color: '#4CAF50' });
 
@@ -122,14 +123,14 @@ async function initialize() {
 // ================================
 async function getLatestCapture(sendResponse: (response: any) => void) {
   try {
-    // Check if we have any captures
+    // Check if we have any captures, if not, return an error
     if (captures.length === 0) {
       console.log('No captures available');
       sendResponse({ error: 'No captures available' });
       return true;
     }
 
-    // Return most recent capture
+    // return most recent capture obj
     const latestCapture = captures[0];
     console.log('Sending latest capture:', latestCapture.title);
     sendResponse({ capture: latestCapture });
@@ -145,7 +146,7 @@ async function clearCaptures(sendResponse: (response: any) => void) {
     captures = [];
     await chrome.storage.local.set({ captures: [] });
     currentCaptureIndex = null;
-    // Reset badge
+    // Reset badge to 0 correspondingly
     chrome.action.setBadgeText({ text: '0' });
 
     console.log('All captures cleared');
@@ -161,16 +162,18 @@ async function clearCaptures(sendResponse: (response: any) => void) {
 // Event Listeners
 // ================================
 
-// Handle user-initiated capture
+// Handle user-initiated commands
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('Command:', command);
-  
+
   switch (command) {
+    // capture the active tab (Alt + C) & notify content script for toast
     case 'capture_tab': {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab) {
         await handleCapture(tab);
         currentCaptureIndex = 0;
+        // only send if the id of the current tab is available
         if (tab.id) {
           chrome.tabs.sendMessage(tab.id, {
             type: 'CAPTURE_COMPLETE',
@@ -180,25 +183,28 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
       break;
     }
-
+    // navigate to the next or previous capture (Alt + Right / Alt + Left)
     case 'next_capture':
     case 'previous_capture': {
       if (captures.length === 0) {
         console.log('No captures available');
         return;
       }
-
+      // if currentCaptureIndex is null (first capture), set it to 0 
       if (currentCaptureIndex === null) {
         currentCaptureIndex = 0;
       } else {
+        // the change is determined by whether the cmd is next or previous
         const delta = command === 'next_capture' ? 1 : -1;
         currentCaptureIndex = (currentCaptureIndex + delta + captures.length) % captures.length;
       }
 
       const currCapture = captures[currentCaptureIndex];
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      // if we have both a current capture and the id of the current tab
       if (tab?.id && currCapture) {
-        chrome.tabs.sendMessage(tab.id, { 
+        // tell the content script to update the current capture with the screenshot
+        chrome.tabs.sendMessage(tab.id, {
           type: 'UPDATE_CURRENT_CAPTURE',
           screenshot: currCapture.screenshot,
           idx: currentCaptureIndex,
@@ -206,16 +212,18 @@ chrome.commands.onCommand.addListener(async (command) => {
       }
       break;
     }
-
+    // toggle the overlay (Alt + Shift + Space)
     case 'toggle_overlay': {
       console.log('Toggling overlay');
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      // if we have the id of the current tab and captures available
       if (tab?.id && captures.length > 0 && currentCaptureIndex !== null) {
         const currCapture = captures[currentCaptureIndex];
         console.log('Current capture:', currCapture.title);
         if (currCapture) {
+          // send message to content script to toggle overlay, showing the screenshot
           console.log('Sending message to tab', tab.id);
-          chrome.tabs.sendMessage(tab.id, { 
+          chrome.tabs.sendMessage(tab.id, {
             type: 'TOGGLE_OVERLAY',
             screenshot: currCapture.screenshot,
           });
@@ -226,17 +234,20 @@ chrome.commands.onCommand.addListener(async (command) => {
   }
 });
 
+// Listen for messages from the popup
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log('Message received:', message, sender);
+
   switch (message.type) {
+    // get the latest capture for the popup
     case 'GET_LATEST_CAPTURE':
       getLatestCapture(sendResponse);
       return true;
-
+    // clear all captures (when button is clicked in popup)
     case 'CLEAR_CAPTURES':
       clearCaptures(sendResponse);
       return true;
-
+    // get all captures for the popup (when it opens)
     case 'GET_ALL_CAPTURES':
       sendResponse({ captures, currentCaptureIndex });
       return true;
@@ -246,6 +257,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// Initialize extension on installation or startup
+// init extension on installation or startup
 chrome.runtime.onInstalled.addListener(initialize);
 chrome.runtime.onStartup.addListener(initialize);

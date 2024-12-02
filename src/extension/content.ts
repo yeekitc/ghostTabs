@@ -3,7 +3,6 @@
 // Content script for managing overlay display
 // ================================
 
-// In content.ts at the very top:
 console.log('Content script loaded for:', window.location.href);
 
 // State
@@ -14,6 +13,9 @@ let overlayElement: HTMLDivElement | null = null;
 // Overlay Management
 // ================================
 
+// Toggle overlay visibility upon receiving a message TOGGLE_OVERLAY
+// INPUT: screenshot to display in base64 format
+// OUTPUT: none
 function toggleOverlay(screenshot: string) {
     if (isOverlayVisible) {
         hideOverlay();
@@ -22,6 +24,9 @@ function toggleOverlay(screenshot: string) {
     }
 }
 
+// Show overlay with screenshot
+// INPUT: screenshot to display in base64 format
+// OUTPUT: none
 function showOverlay(screenshot: string) {
     if (overlayElement) {
         overlayElement.remove();
@@ -45,6 +50,9 @@ function showOverlay(screenshot: string) {
     isOverlayVisible = true;
 }
 
+// Hide overlay
+// INPUT: none
+// OUTPUT: none
 function hideOverlay() {
     if (overlayElement) {
         overlayElement.remove();
@@ -57,15 +65,17 @@ function hideOverlay() {
 // Message Handling
 // ================================
 
+// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender) => {
     console.log('Content script received message from', sender, ':', message.type);
 
     switch (message.type) {
+        // toggle overlay visibility (Alt + Shift + Space)
         case 'TOGGLE_OVERLAY':
             console.log('Toggling overlay with screenshot');
             toggleOverlay(message.screenshot);
             break;
-
+        // update current capture with screenshot
         case 'UPDATE_CURRENT_CAPTURE':
             console.log('Updating current capture with screenshot');
             if (isOverlayVisible) {
@@ -110,36 +120,35 @@ function injectToastStyle() {
         }
     `;
     document.head.appendChild(style);
-  }
-  
-  function showToast(message: string) {
+}
+
+function showToast(message: string) {
     let toast = document.querySelector('.toast-container') as HTMLDivElement;
-  
+
     // If the toast element doesn't exist, create it
     if (!toast) {
-      toast = document.createElement('div');
-      toast.className = 'toast-container';
-      document.body.appendChild(toast);
+        toast = document.createElement('div');
+        toast.className = 'toast-container';
+        document.body.appendChild(toast);
     }
-  
+
     // Set the message and display the toast
     toast.textContent = message;
     toast.classList.add('show');
-  
+
     // Hide the toast after 3 seconds
     setTimeout(() => {
-      toast.classList.remove('show');
+        toast.classList.remove('show');
     }, 3000);
-  }
-  
-  // Inject styles on content script load
-    injectToastStyle();
+}
 
-  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+// Inject styles on content script load
+injectToastStyle();
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Content script received message:', message, sender);
     if (message.type === 'CAPTURE_COMPLETE') {
-      showToast('Capture saved!');
-      sendResponse({ status: 'toast-shown' });
+        showToast('Capture saved!');
+        sendResponse({ status: 'toast-shown' });
     }
-  });
-  
+});

@@ -1,9 +1,12 @@
-// App.tsx
+// ======================
+// File: App.tsx
+// React component for the GhostTabs popup
+// ======================
 
 import { useState, useEffect } from 'react'
 import './App.css'
 
-// Define the type for our captures
+// def type for our captures
 type TabCapture = {
   id: string;
   url: string;
@@ -12,12 +15,15 @@ type TabCapture = {
   timestamp: number;
 }
 
+// ======================
+// Main App component
+// ======================
 function App() {
   const [captures, setCaptures] = useState<TabCapture[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number | null>(null);
 
   useEffect(() => {
-    // Load captures when popup opens
+    // load captures when popup opens by sending a message to the background script
     const loadCaptures = async () => {
       const result = await chrome.runtime.sendMessage({ type: 'GET_ALL_CAPTURES' });
       setCaptures(result.captures || []);
@@ -27,6 +33,8 @@ function App() {
     loadCaptures();
   }, []);
 
+  // async function to clear all captures when the button is clicked
+  // sends a message to the background script to clear the captures
   const handleClearCaptures = async () => {
     const response = await chrome.runtime.sendMessage({ type: 'CLEAR_CAPTURES' });
     if (response.success) {
@@ -54,12 +62,12 @@ function App() {
           </button>
         </div>
       </header>
-
+      {/* Render the captures list or an empty state if no captures are available */}
       {captures.length === 0 ? (
         <div className="empty-state">
-          <img 
-            src="/ghostTabsIcon.png" 
-            alt="GhostTabs Icon" 
+          <img
+            src="/ghostTabsIcon.png"
+            alt="GhostTabs Icon"
             className="empty-state-icon"
           />
           <p className="empty-message">No captures yet!</p>
@@ -68,44 +76,44 @@ function App() {
           </p>
         </div>
       ) : (
-      <div className="captures-list">
-        {captures.map((capture, index) => (
-          <div 
-            key={capture.id} 
-            className={`capture-card ${index === currentIdx ? 'current' : ''}`}
-          >
-            <div>
-              <h2 className="capture-title">{capture.title}</h2>
-              <time className="capture-timestamp">
-                {new Date(capture.timestamp).toLocaleString()}
-              </time>
-            </div>
-
-            <div className="capture-thumbnail">
-              <img 
-                src={capture.screenshot} 
-                alt={capture.title}
-              />
-            </div>
-
-            <div className="capture-metadata">
-              <div className="metadata-content">
-                <p className="metadata-label">Metadata:</p>
-                <p className="metadata-field">
-                  <span>URL:</span> {capture.url}
-                </p>
-                <p className="metadata-field">
-                  <span>Captured:</span>{' '}
+        <div className="captures-list">
+          {captures.map((capture, index) => (
+            <div
+              key={capture.id}
+              className={`capture-card ${index === currentIdx ? 'current' : ''}`}
+            >
+              <div>
+                <h2 className="capture-title">{capture.title}</h2>
+                <time className="capture-timestamp">
                   {new Date(capture.timestamp).toLocaleString()}
-                </p>
-                {index === currentIdx && (
-                  <p className="current-indicator">Current Reference</p>
-                )}
+                </time>
+              </div>
+
+              <div className="capture-thumbnail">
+                <img
+                  src={capture.screenshot}
+                  alt={capture.title}
+                />
+              </div>
+
+              <div className="capture-metadata">
+                <div className="metadata-content">
+                  <p className="metadata-label">Metadata:</p>
+                  <p className="metadata-field">
+                    <span>URL:</span> {capture.url}
+                  </p>
+                  <p className="metadata-field">
+                    <span>Captured:</span>{' '}
+                    {new Date(capture.timestamp).toLocaleString()}
+                  </p>
+                  {index === currentIdx && (
+                    <p className="current-indicator">Current Reference</p>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
       )}
     </div>
   )
