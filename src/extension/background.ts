@@ -9,6 +9,12 @@ type TabCapture = {
   title: string;
   screenshot: string;
   timestamp: number;
+  overlayPosition?: { 
+    x: number; 
+    y: number;
+    width: number;
+    height: number; 
+  };
 };
 
 let captures: TabCapture[] = [];
@@ -278,6 +284,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ captures: [], currentCaptureIndex: null });
         }
       });
+      return true;
+    // get the current capture 
+    case 'GET_CURRENT_CAPTURE':
+      // Send current capture if available
+      if (currentCaptureIndex !== null && captures.length > 0) {
+        sendResponse({ capture: captures[currentCaptureIndex] });
+      } else {
+        sendResponse({ capture: null });
+      }
+      return true;
+    // update overlay position for the current capture
+    case 'UPDATE_OVERLAY_POSITION':
+      if (currentCaptureIndex !== null && captures.length > 0) {
+        // Update position for current capture
+        captures[currentCaptureIndex].overlayPosition = message.position;
+        // Save to storage
+        chrome.storage.local.set({ captures }).catch(error => {
+          console.error('Error saving overlay position:', error);
+        });
+      }
       return true;
     // debug by checking what's in storage
     case 'DEBUG_CHECK_STORAGE':
