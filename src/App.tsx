@@ -1,3 +1,5 @@
+// App.tsx
+
 import { useState, useEffect } from 'react'
 import './App.css'
 
@@ -12,61 +14,84 @@ type TabCapture = {
 
 function App() {
   const [captures, setCaptures] = useState<TabCapture[]>([]);
+  const [currentIdx, setCurrentIdx] = useState<number | null>(null);
 
   useEffect(() => {
     // Load captures when popup opens
     const loadCaptures = async () => {
-      const result = await chrome.storage.local.get('captures');
+      const result = await chrome.runtime.sendMessage({ type: 'GET_ALL_CAPTURES' });
       setCaptures(result.captures || []);
+      setCurrentIdx(result.currentCaptureIndex);
     };
     
     loadCaptures();
   }, []);
 
   const handleClearCaptures = async () => {
-    await chrome.storage.local.set({ captures: [] });
-    setCaptures([]);
+    const response = await chrome.runtime.sendMessage({ type: 'CLEAR_CAPTURES' });
+    if (response.success) {
+      setCaptures([]);
+      setCurrentIdx(null);
+    } else {
+      console.error('Failed to clear captures:', response.error);
+    }
   };
 
   return (
-    <div className="p-4 max-w-md">
-      <h1 className="text-xl font-bold mb-4">GhostTabs Debug</h1>
-      
-      {/* Status information */}
-      <div className="mb-4 p-2 bg-gray-100 rounded">
-        <div>Total Captures: {captures.length}</div>
-        <div>Latest Capture: {captures[0]?.timestamp ? 
-          new Date(captures[0].timestamp).toLocaleString() : 
-          'None'}
+    <div className="popup-container">
+      <header className="header">
+        <h1>GhostTabs</h1>
+        <div className="header-content">
+          <p className="capture-count">
+            {captures.length} {captures.length === 1 ? 'capture' : 'captures'} saved
+          </p>
+          <button
+            onClick={handleClearCaptures}
+            className="clear-button"
+            disabled={captures.length === 0}
+          >
+            Clear Data
+          </button>
         </div>
-      </div>
+      </header>
 
-      {/* Display captures */}
-      <div className="space-y-4">
-        {captures.map((capture) => (
-          <div key={capture.id} className="border p-2 rounded">
-            <div className="font-medium">{capture.title}</div>
-            <div className="text-sm text-gray-600">{capture.url}</div>
-            <div className="text-xs text-gray-500">
-              {new Date(capture.timestamp).toLocaleString()}
+      <div className="captures-list">
+        {captures.map((capture, index) => (
+          <div 
+            key={capture.id} 
+            className={`capture-card ${index === currentIdx ? 'current' : ''}`}
+          >
+            <div>
+              <h2 className="capture-title">{capture.title}</h2>
+              <time className="capture-timestamp">
+                {new Date(capture.timestamp).toLocaleString()}
+              </time>
             </div>
-            <img 
-              src={capture.screenshot} 
-              alt={capture.title}
-              className="mt-2 w-full h-auto border rounded"
-            />
+
+            <div className="capture-thumbnail">
+              <img 
+                src={capture.screenshot} 
+                alt={capture.title}
+              />
+            </div>
+
+            <div className="capture-metadata">
+              <div className="metadata-content">
+                <p className="metadata-label">Metadata:</p>
+                <p className="metadata-field">
+                  <span>URL:</span> {capture.url}
+                </p>
+                <p className="metadata-field">
+                  <span>Captured:</span>{' '}
+                  {new Date(capture.timestamp).toLocaleString()}
+                </p>
+                {index === currentIdx && (
+                  <p className="current-indicator">Current Reference</p>
+                )}
+              </div>
+            </div>
           </div>
         ))}
-      </div>
-
-      {/* Debug controls */}
-      <div className="mt-4">
-        <button
-          onClick={handleClearCaptures}
-          className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-        >
-          Clear All Captures
-        </button>
       </div>
     </div>
   )
