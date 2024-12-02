@@ -62,33 +62,6 @@ function hideOverlay() {
 }
 
 // ================================
-// Message Handling
-// ================================
-
-// Listen for messages from the background script
-chrome.runtime.onMessage.addListener((message, sender) => {
-    console.log('Content script received message from', sender, ':', message.type);
-
-    switch (message.type) {
-        // toggle overlay visibility (Alt + Shift + Space)
-        case 'TOGGLE_OVERLAY':
-            console.log('Toggling overlay with screenshot');
-            toggleOverlay(message.screenshot);
-            break;
-        // update current capture with screenshot
-        case 'UPDATE_CURRENT_CAPTURE':
-            console.log('Updating current capture with screenshot');
-            if (isOverlayVisible) {
-                showOverlay(message.screenshot);
-            }
-            break;
-
-        default:
-            console.warn('Unknown message type:', message.type);
-    }
-});
-
-// ================================
 // Toaster Notification
 // ================================
 
@@ -145,10 +118,44 @@ function showToast(message: string) {
 // Inject styles on content script load
 injectToastStyle();
 
+// ================================
+// Message Handling
+// ================================
+
+// Listen for messages from the background script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('Content script received message:', message, sender);
-    if (message.type === 'CAPTURE_COMPLETE') {
-        showToast('Capture saved!');
-        sendResponse({ status: 'toast-shown' });
+    console.log('Content script received message from', sender, ':', message.type);
+
+    switch (message.type) {
+        // toggle overlay visibility (Alt + Shift + Space)
+        case 'TOGGLE_OVERLAY':
+            console.log('Toggling overlay with screenshot');
+            toggleOverlay(message.screenshot);
+            break;
+        // update current capture with screenshot
+        case 'UPDATE_CURRENT_CAPTURE':
+            console.log('Updating current capture with screenshot');
+            if (isOverlayVisible) {
+                showOverlay(message.screenshot);
+            }
+            break;
+
+        // capture complete
+        case 'CAPTURE_COMPLETE':
+            console.log('Capture complete:', message);
+            showToast('Capture saved!');
+            sendResponse({ status: 'toast-shown' });
+            break;
+
+        case 'RESET_OVERLAY':
+            if (overlayElement) {
+                overlayElement.remove();
+                overlayElement = null;
+            }
+            isOverlayVisible = false;
+            break;
+
+        default:
+            console.warn('Unknown message type:', message.type);
     }
 });

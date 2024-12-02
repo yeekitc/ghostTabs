@@ -124,6 +124,8 @@ async function initialize() {
 async function getLatestCapture(sendResponse: (response: any) => void) {
   try {
     // Check if we have any captures, if not, return an error
+    const data = await chrome.storage.local.get('captures');
+    captures = Array.isArray(data.captures) ? data.captures : [];
     if (captures.length === 0) {
       console.log('No captures available');
       sendResponse({ error: 'No captures available' });
@@ -149,6 +151,19 @@ async function clearCaptures(sendResponse: (response: any) => void) {
     // Reset badge to 0 correspondingly
     chrome.action.setBadgeText({ text: '0' });
 
+    // force hide overlay in all tabs
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
+      if (tab.id) {
+        try {
+          await chrome.tabs.sendMessage(tab.id, { type: 'RESET_OVERLAY' });
+        } catch (error) {
+          // Tab might not have content script loaded, that's ok
+          console.log('Could not reset overlay for tab:', tab.id);
+        }
+      }
+    }
+
     console.log('All captures cleared');
     sendResponse({ success: true });
   } catch (error) {
@@ -165,6 +180,8 @@ async function clearCaptures(sendResponse: (response: any) => void) {
 // Handle user-initiated commands
 chrome.commands.onCommand.addListener(async (command) => {
   console.log('Command:', command);
+  const data = await chrome.storage.local.get('captures');
+  captures = Array.isArray(data.captures) ? data.captures : [];
 
   switch (command) {
     // capture the active tab (Alt + C) & notify content script for toast
@@ -249,9 +266,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true;
     // get all captures for the popup (when it opens)
     case 'GET_ALL_CAPTURES':
-      sendResponse({ captures, currentCaptureIndex });
+      chrome.storage.local.get('captures', (data) => {
+        try {
+          captures = Array.isArray(data.captures) ? data.captures : [];
+          if (captures.length > 0 && currentCaptureIndex === null) {
+            currentCaptureIndex = 0;
+          }
+          sendResponse({ captures, currentCaptureIndex });
+        } catch (error) {
+          console.error('Error getting captures:', error);
+          sendResponse({ captures: [], currentCaptureIndex: null });
+        }
+      });
       return true;
-
+    // debug by checking what's in storage
+    case 'DEBUG_CHECK_STORAGE':
+      chrome.storage.local.get(null, (items) => {
+        console.log("All storage items:", items);
+        sendResponse({ storage: items });
+      });
+      return true;
     default:
       console.warn('Unknown message type:', message.type);
   }
