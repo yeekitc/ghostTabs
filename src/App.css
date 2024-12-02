@@ -1,8 +1,52 @@
 /* App.css */
+:root {
+  /* Primary Colors */
+  --blue-primary: #5B7B9E;      /* Muted blue */
+  --blue-dark: #415A76;         /* Darker blue for hover */
+  --beige-bg: #F8F7F4;         /* Light beige background */
+  --beige-darker: #EAE7E0;     /* Slightly darker beige for hover */
+  
+  /* Text Colors */
+  --text-primary: #2C3E50;     /* Dark blue-gray for primary text */
+  --text-secondary: #647588;    /* Lighter blue-gray for secondary text */
+  
+  /* Accent Colors */
+  --accent-success: #7BA69A;    /* Muted teal for success/current states */
+  --accent-danger: #B85F5F;     /* Muted red for danger/clear actions */
+  
+  /* Border Colors */
+  --border-light: #E5E5E5;
+  --border-hover: #D1D1D1;
+}
 
 .popup-container {
   padding: 1rem;
-  max-width: 28rem;
+  width: 350px;
+  min-width: 350px;
+  height: 600px;
+  max-height: 600px;
+  background-color: var(--beige-bg);
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.popup-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.popup-container::-webkit-scrollbar-track {
+  background: var(--beige-bg);
+  border-radius: 4px;
+}
+
+.popup-container::-webkit-scrollbar-thumb {
+  background: var(--blue-primary);
+  border-radius: 4px;
+  opacity: 0.5;
+}
+
+.popup-container::-webkit-scrollbar-thumb:hover {
+  background: var(--blue-dark);
 }
 
 .header {
@@ -12,6 +56,7 @@
 .header h1 {
   font-size: 1.25rem;
   font-weight: bold;
+  color: var(--blue-primary);
 }
 
 .header-content {
@@ -23,22 +68,22 @@
 
 .capture-count {
   font-size: 0.875rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .clear-button {
-  background-color: #ef4444;
+  background-color: var(--accent-danger);
   color: white;
   padding: 0.25rem 0.75rem;
   font-size: 0.875rem;
   border-radius: 0.5rem;
   border: none;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
 }
 
 .clear-button:hover {
-  background-color: #dc2626;
+  filter: brightness(90%);
 }
 
 .clear-button:disabled {
@@ -50,30 +95,31 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  max-height: 24rem;
-  overflow-y: auto;
+  width: 100%;
 }
 
 .capture-card {
   position: relative;
-  border: 1px solid #e5e5e5;
+  border: 1px solid var(--border-light);
   border-radius: 0.5rem;
   padding: 0.75rem;
   background: white;
-  transition: background-color 0.2s;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .capture-card:hover {
-  background-color: #f9fafb;
+  background-color: var(--beige-bg);
+  border-color: var(--border-hover);
 }
 
 .capture-card.current {
-  border-left: 4px solid #22c55e;
+  border-left: 4px solid var(--accent-success);
 }
 
 .capture-title {
   font-weight: 500;
-  color: #111;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -81,7 +127,7 @@
 
 .capture-timestamp {
   font-size: 0.75rem;
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .capture-thumbnail {
@@ -89,7 +135,7 @@
   width: 100%;
   height: 10rem;
   margin-top: 0.5rem;
-  background-color: #f3f4f6;
+  background-color: var(--beige-bg);
   border-radius: 0.25rem;
   overflow: hidden;
 }
@@ -104,9 +150,9 @@
   position: absolute;
   inset: 0;
   padding: 0.75rem;
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.98);
   opacity: 0;
-  transition: opacity 0.2s;
+  transition: opacity 0.2s ease;
   border-radius: 0.5rem;
 }
 
@@ -123,18 +169,53 @@
 
 .metadata-label {
   font-weight: 500;
+  color: var(--blue-primary);
 }
 
 .metadata-field {
-  color: #666;
+  color: var(--text-secondary);
   word-break: break-all;
 }
 
 .metadata-field span {
-  color: #666;
+  color: var(--text-secondary);
 }
 
 .current-indicator {
-  color: #16a34a;
+  color: var(--accent-success);
   font-weight: 500;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-secondary);
+  background: white;
+  border-radius: 0.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid var(--border-light);
+}
+
+.empty-message {
+  font-size: 0.875rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-primary);
+}
+
+.empty-hint {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.empty-state-icon {
+  width: 48px;  
+  height: 48px;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+  filter: saturate(0.8); /* Makes the icon slightly more muted */
 }

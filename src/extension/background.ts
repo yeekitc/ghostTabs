@@ -171,6 +171,12 @@ chrome.commands.onCommand.addListener(async (command) => {
       if (tab) {
         await handleCapture(tab);
         currentCaptureIndex = 0;
+        if (tab.id) {
+          chrome.tabs.sendMessage(tab.id, {
+            type: 'CAPTURE_COMPLETE',
+            captureCount: captures.length,
+          });
+        }
       }
       break;
     }
