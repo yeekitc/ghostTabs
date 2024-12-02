@@ -201,11 +201,14 @@ chrome.commands.onCommand.addListener(async (command) => {
       break;
     }
 
-    case '_execute_action': {
+    case 'toggle_overlay': {
+      console.log('Toggling overlay');
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id && captures.length > 0 && currentCaptureIndex !== null) {
         const currCapture = captures[currentCaptureIndex];
+        console.log('Current capture:', currCapture.title);
         if (currCapture) {
+          console.log('Sending message to tab', tab.id);
           chrome.tabs.sendMessage(tab.id, { 
             type: 'TOGGLE_OVERLAY',
             screenshot: currCapture.screenshot,

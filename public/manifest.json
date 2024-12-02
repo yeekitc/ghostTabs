@@ -28,33 +28,33 @@
     }
   ],
   "commands": {
-  "_execute_action": {
-    "suggested_key": {
-      "default": "Alt+Space",
-      "mac": "Alt+Space"
+    "toggle_overlay": {
+      "suggested_key": {
+        "default": "Alt+Shift+Space",
+        "mac": "Alt+Shift+Space" 
+      },
+      "description": "Toggle overlay"
     },
-    "description": "Toggle overlay"
-  },
-  "capture_tab": {
-    "suggested_key": {
-      "default": "Alt+C",
-      "mac": "Alt+C"
+    "capture_tab": {
+      "suggested_key": {
+        "default": "Alt+C",
+        "mac": "Alt+C"
+      },
+      "description": "Capture current tab"
     },
-    "description": "Capture current tab"
-  },
-  "next_capture": {
-    "suggested_key": {
-      "default": "Alt+Right",
-      "mac": "Alt+Right"
+    "next_capture": {
+      "suggested_key": {
+        "default": "Alt+Right",
+        "mac": "Alt+Right"
+      },
+      "description": "Next capture"
     },
-    "description": "Next capture"
-  },
-  "previous_capture": {
-    "suggested_key": {
-      "default": "Alt+Left",
-      "mac": "Alt+Left"
-    },
-    "description": "Previous capture"
+    "previous_capture": {
+      "suggested_key": {
+        "default": "Alt+Left",
+        "mac": "Alt+Left"
+      },
+      "description": "Previous capture"
+    }
   }
-}
 }
