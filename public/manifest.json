@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ghostTabs",
   "version": "1.0.0",
-  "permissions": ["tabs", "storage", "activeTab", "scripting", "commands"],
+  "permissions": ["tabs", "storage", "activeTab", "scripting", "commands", "unlimitedStorage"],
   "background": {
     "service_worker": "background.js",
     "type": "module"

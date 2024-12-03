@@ -21,13 +21,20 @@ type TabCapture = {
 function App() {
   const [captures, setCaptures] = useState<TabCapture[]>([]);
   const [currentIdx, setCurrentIdx] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // load captures when popup opens by sending a message to the background script
     const loadCaptures = async () => {
-      const result = await chrome.runtime.sendMessage({ type: 'GET_ALL_CAPTURES' });
-      setCaptures(result.captures || []);
-      setCurrentIdx(result.currentCaptureIndex);
+      setIsLoading(true);
+      try {
+        const result = await chrome.runtime.sendMessage({ type: 'GET_ALL_CAPTURES' });
+        setCaptures(result.captures || []);
+        setCurrentIdx(result.currentCaptureIndex);
+      } catch (error) {
+        console.error('Failed to load captures:', error);
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadCaptures();
@@ -44,6 +51,25 @@ function App() {
       console.error('Failed to clear captures:', response.error);
     }
   };
+
+  // Show loading state while fetching initial data
+  if (isLoading) {
+    return (
+      <div className="popup-container">
+        <header className="header">
+          <h1>GhostTabs</h1>
+        </header>
+        <div className="loading-state">
+          <img
+            src="/ghostTabsIcon.png"
+            alt="GhostTabs Icon"
+            className="loading-icon"
+          />
+          <p>Loading captures...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="popup-container">

@@ -162,8 +162,17 @@ function setupResize(element: HTMLElement, handle: HTMLElement) {
     }
 }
 
+// Debounce helper function
+const debounce = (func: Function, wait: number) => {
+    let timeout: NodeJS.Timeout | undefined;
+    return (...args: any[]) => {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func(...args), wait);
+    };
+};
+
 // Save position periodically during drag/resize
-function savePosition(element: HTMLElement) {
+const savePosition = debounce((element: HTMLElement) => {
     const position = {
         x: element.offsetLeft,
         y: element.offsetTop,
@@ -174,7 +183,7 @@ function savePosition(element: HTMLElement) {
         type: 'UPDATE_OVERLAY_POSITION', 
         position 
     });
-}
+}, 100); // Only send update every 100ms
 
 // Hide overlay
 // INPUT: none
